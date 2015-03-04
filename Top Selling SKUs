@@ -1,0 +1,10 @@
+SELECT sp.name , pit.sku , SUM(oitm.quantity), inv.available_quantity AS 'Quantity' FROM products.saleplan sp 
+INNER JOIN products.productsale ps ON ps.sale_plan_id = sp.id
+INNER JOIN products.productitem pit ON pit.product_id = ps.product_id
+LEFT JOIN orders.orderitem oitm ON pit.sku = oitm.sku
+LEFT JOIN orders.order o ON oitm.order_id = o.id
+LEFT JOIN warehouses.inventory inv ON pit.sku = inv.sku
+WHERE o.order_date BETWEEN CURDATE()- INTERVAL 14 DAY  AND CURDATE() 
+AND sp.id = 13931
+GROUP BY 2
+ORDER BY Quantity DESC 
