@@ -1,0 +1,11 @@
+SELECT sp.name , pitm.sku , inv.available_quantity , tbl.Sold FROM products.saleplan sp
+INNER JOIN products.productsale ps ON ps.sale_plan_id = sp.id
+INNER JOIN products.productitem pitm ON pitm.product_id = ps.product_id
+INNER JOIN products.saleplanposition spp ON spp.sale_plan_id = sp.id
+LEFT JOIN warehouses.inventory inv ON pitm.sku = inv.sku
+LEFT JOIN (SELECT sku , SUM(quantity) AS "Sold" FROM orders.orderitem oitm INNER JOIN orders.order o ON o.id = oitm.order_id
+WHERE o.order_date BETWEEN CURDATE() - INTERVAL 14 DAY AND CURDATE() GROUP BY 1 ) tbl ON pitm.sku = tbl.sku  
+WHERE spp.page_name = "FB"
+AND DATE(spp.date) = CURDATE()
+ORDER BY 1,4 DESC
+
