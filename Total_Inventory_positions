@@ -1,0 +1,116 @@
+SELECT
+
+sp.name AS 'Boutique',  spp.position_index,
+
+COUNT(DISTINCT(cd.customer_id)) AS "Buyers",
+
+COUNT(DISTINCT CASE WHEN DATE(cd.first_order_date) = DATE(o.order_date) THEN 
+
+cd.customer_id END) AS NB,
+
+COUNT(DISTINCT CASE WHEN DATE(cd.first_order_date) <> DATE(o.order_date) THEN 
+
+cd.customer_id END) AS RB,
+
+ROUND(SUM(CASE WHEN DATE(cd.first_order_date) = DATE(o.order_date) THEN oi.sub_total ELSE 0 
+
+END)) AS "GMV_NB",
+
+ROUND(SUM(CASE WHEN DATE(cd.first_order_date) <> DATE(o.order_date) THEN oi.sub_total ELSE 
+
+0 END)) AS "GMV_RB",
+
+ROUND(SUM(oi.sub_total)) AS "GMV_Total",
+
+SUM(CASE WHEN DATE(cd.first_order_date) = DATE(o.order_date) THEN oi.quantity ELSE 0 END) AS 
+
+"Qty_NB",
+
+SUM(CASE WHEN DATE(cd.first_order_date) <> DATE(o.order_date) THEN oi.quantity ELSE 0 END) 
+
+AS "Qty_RB",
+
+SUM(oi.quantity) AS "Qty_Total",
+
+-- SUM(oi.quantity)/COUNT(DISTINCT(cd.customer_id)) AS "Qty per Buyer",
+
+ROUND(SUM(CASE WHEN DATE(cd.first_order_date) = DATE(o.order_date) THEN oi.sub_total ELSE 0 
+
+END)/SUM(CASE WHEN DATE(cd.first_order_date) = DATE(o.order_date) THEN oi.quantity ELSE 0 
+
+END)) AS "ASP_NB",
+
+ROUND(SUM(CASE WHEN DATE(cd.first_order_date) <> DATE(o.order_date) THEN oi.sub_total ELSE 
+
+0 END)/SUM(CASE WHEN DATE(cd.first_order_date) <> DATE(o.order_date) THEN oi.quantity ELSE 0 
+
+END)) AS "ASP_RB",
+
+ROUND(SUM(oi.sub_total)/SUM(oi.quantity)) AS ASP_Overall,
+
+bp.plp_visits,
+
+COUNT(DISTINCT(o.id)) AS "Orders",
+
+(COUNT(DISTINCT(o.id))/bp.plp_visits)*100 AS 'Conversion' , 
+
+tbl.available  AS "Available Quantity"
+
+FROM
+
+customers.`customerdetail` cd
+
+INNER JOIN orders.`order` o ON o.`customer_id` = cd.`customer_id`
+
+INNER JOIN orders.`orderitem` oi ON o.`id` = oi.`order_id`
+
+INNER JOIN products.`productitem` pitm ON oi.`sku` = pitm.`sku`
+
+INNER JOIN products.`product` p ON pitm.`product_id` = p.`id`
+
+INNER JOIN products.productsale ps ON p.id=ps.product_id
+
+INNER JOIN products.saleplan sp ON sp.id=ps.sale_plan_id
+
+INNER JOIN products.saleplanposition spp ON spp.sale_plan_id=sp.id
+
+LEFT JOIN report.boutiqueperformance bp ON sp.id = bp.boutique_id
+
+LEFT JOIN ( SELECT sp.name AS "boutique" , SUM(inv.available_quantity) AS "available" FROM products.saleplan sp 
+            INNER JOIN products.productsale ps ON ps.sale_plan_id = sp.id
+            INNER JOIN products.productitem pitm ON pitm.product_id = ps.product_id
+            INNER JOIN warehouses.inventory inv ON pitm.sku = inv.sku
+            GROUP BY 1) tbl ON sp.name =  tbl.boutique
+
+
+WHERE
+
+DATE(o.order_date) = CURDATE()  
+
+AND (
+
+o.customer_id <>5194 AND o.customer_id <>1550 AND o.customer_id <>35024 AND o.customer_id 
+
+<>1111
+
+AND o.customer_id <>43267 AND o.customer_id <>32147 AND o.customer_id <>15963
+
+)
+
+AND
+
+(o.order_status_id =3 OR (o.order_status_id >=6 AND o.order_status_id <>13))
+
+AND sp.is_activity='Y'
+
+-- AND spp.position_index <> 2147483647
+
+AND spp.page_name='FB'
+
+AND DATE(spp.DATE)= CURDATE() 
+
+AND bp.create_date = CURDATE() 
+
+GROUP BY 1
+
+ORDER BY 5 DESC
